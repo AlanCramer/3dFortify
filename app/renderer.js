@@ -23,12 +23,12 @@ function init() {
     var loader = new STLLoader()
 
     loader.load('../stl/Body1.stl', function (geometry) {
-      var material = new THREE.MeshNormalMaterial()
-      mesh = new THREE.Mesh(geometry, material)
-      scene.add(mesh)
+        var material = new THREE.MeshNormalMaterial()
+        mesh = new THREE.Mesh(geometry, material)
+        scene.add(mesh)
 
-      //animate();
-      render();
+        //animate();
+        render();
     })
 
     renderer = new THREE.WebGLRenderer();
