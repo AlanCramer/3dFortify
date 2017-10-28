@@ -2,6 +2,8 @@
 // be executed in the renderer process for that window.
 // All of the Node.js APIs are available in this process.
 var THREE = require('three');
+var STLLoader = require('three-stl-loader')(THREE)
+
 // var scene = new THREE.Scene();
 // var camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
 //
@@ -28,6 +30,15 @@ function init() {
 
     mesh = new THREE.Mesh( geometry, material );
     scene.add( mesh );
+
+    var loader = new STLLoader()
+
+    loader.load('../stl/Body1.stl', function (geometry) {
+      var material = new THREE.MeshNormalMaterial()
+      var mesh = new THREE.Mesh(geometry, material)
+      scene.add(mesh)
+    })
+
 
     renderer = new THREE.WebGLRenderer();
     renderer.setSize( window.innerWidth, window.innerHeight );
