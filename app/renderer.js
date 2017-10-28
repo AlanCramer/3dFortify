@@ -3,14 +3,7 @@
 // All of the Node.js APIs are available in this process.
 var THREE = require('three');
 var STLLoader = require('three-stl-loader')(THREE)
-
-// var scene = new THREE.Scene();
-// var camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
-//
-// var renderer = new THREE.WebGLRenderer();
-// renderer.setSize( window.innerWidth, window.innerHeight );
-// document.body.appendChild( renderer.domElement );
-
+var OrbitControls = require('three-orbit-controls')(THREE)
 
 var scene, camera, renderer;
 var geometry, material, mesh;
@@ -25,6 +18,8 @@ function init() {
     camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 10000 );
     camera.position.z = 100;
 
+    controls = new OrbitControls(camera);
+    controls.addEventListener( 'change', render );
     //geometry = new THREE.BoxGeometry( 200, 200, 200 );
     //material = new THREE.MeshBasicMaterial( { color: 0xff0000, wireframe: true } );
 
@@ -38,7 +33,8 @@ function init() {
       mesh = new THREE.Mesh(geometry, material)
       scene.add(mesh)
 
-      animate();
+      //animate();
+      render();
     })
 
 
@@ -47,6 +43,11 @@ function init() {
 
     document.body.appendChild( renderer.domElement );
 
+}
+
+// who calls this?
+function render(gl, width, height) {
+    renderer.render( scene, camera );
 }
 
 function animate() {
