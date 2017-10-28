@@ -13,9 +13,6 @@
       Welcome to <a href="http://electron.atom.io" class="js-external-link">Electron</a> app running on this magnificent <strong id="os"></strong> machine.
     </p>
     <p>
-      App author: <strong id="author"></strong>
-    </p>
-    <p>
       Environment: <strong id="env"></strong>
     </p>
     <p>
@@ -24,5 +21,9 @@
   </div>
 
   <script src="app.js"></script>
+  <script>
+    // You can also require other files to run in this process
+    require('./renderer.js')
+  </script>
 </body>
 </html>
