@@ -6,7 +6,7 @@ var STLLoader = require('three-stl-loader')(THREE)
 var OrbitControls = require('three-orbit-controls')(THREE)
 
 var scene, camera, renderer;
-var geometry, material, mesh;
+var geometry, material, mesh, boxMesh;
 
 init();
 
@@ -20,19 +20,43 @@ function init() {
     controls = new OrbitControls(camera);
     controls.addEventListener( 'change', render );
 
-    var loader = new STLLoader()
+    var loader = new STLLoader();
 
     loader.load('../stl/Body1.stl', function (geometry) {
-        var material = new THREE.MeshNormalMaterial()
-        mesh = new THREE.Mesh(geometry, material)
-        scene.add(mesh)
 
-        //animate();
-        render();
+        var textureLoader = new THREE.TextureLoader();
+        textureLoader.load('../textures/pressureTreatedWood.jpg', function(texture) {
+
+            var material = new THREE.MeshStandardMaterial({map: texture});
+            mesh = new THREE.Mesh(geometry, material);
+            scene.add(mesh);
+
+            var boxGeometry = new THREE.BoxGeometry(20, 20, 20);
+
+            boxMesh = new THREE.Mesh(boxGeometry, material);
+            scene.add(boxMesh);
+
+            render();
+        });
     })
 
+    var lights = [];
+    lights[0] = new THREE.PointLight(0xffffff, 1, 0);
+    lights[1] = new THREE.PointLight(0xffffff, 1, 0);
+    lights[2] = new THREE.PointLight(0xffffff, 1, 0);
+
+    lights[0].position.set(0, 200, 0);
+    lights[1].position.set(100, 200, 100);
+    lights[2].position.set(-100, -200, -100);
+
+    scene.add(lights[0]);
+    scene.add(lights[1]);
+    scene.add(lights[2]);
+
     renderer = new THREE.WebGLRenderer();
-    renderer.setSize( window.innerWidth, window.innerHeight );
+    var windowScale = .7;
+    renderer.setSize( window.innerWidth * windowScale, window.innerHeight * windowScale);
+    renderer.setClearColor(0xffffff, 1);
 
     document.body.appendChild( renderer.domElement );
 }
