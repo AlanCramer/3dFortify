@@ -24,6 +24,8 @@ var scene,
     renderer,
     controls;
 
+var meshCurves = [];
+
 scene = new THREE.Scene();
 
 camera = new THREE.PerspectiveCamera( 5, window.innerWidth / window.innerHeight, 1, 1000 );
@@ -99,14 +101,15 @@ function render() {
 // Avoid constantly rendering the scene by only
 // updating the controls every requestAnimationFrame
 function animationLoop() {
-  requestAnimationFrame(animationLoop);
+	requestAnimationFrame(animationLoop);
 
-  if (meshCurve) {
-	  meshCurve.rotation.z += .01;
-  }
+	meshCurves.map(function(c) {
 
-  controls.update();
-  render();
+		c.rotation.z += .01;
+	});
+
+	controls.update();
+	render();
 }
 
 animationLoop();
@@ -148,26 +151,37 @@ function createCurve() {
 	return ellipse;
 }
 
-// cfg = { x:1, y:1, r:1}
+// cfg = { pos: {x:1, y:1, z:1},
+//         r: 1,
+//		   rot: {x:, y:, z:} }
 function createMeshCurve(cfg) {
 	var geometry = new THREE.Geometry();
 
 	var rad = cfg.r;
-	var xoff = 0;
-	var yoff = 0;
+	var pos = cfg.pos;
+	var rot = cfg.rot;
+
 	for( var j = 0; j < 2*Math.PI; j += 2 * Math.PI / 100 ) {
-		var v = new THREE.Vector3( rad* Math.cos( j )+xoff, rad*Math.sin( j )+yoff, 0 );
+		var v = new THREE.Vector3( rad* Math.cos( j ), rad*Math.sin( j ), 0 );
 		geometry.vertices.push( v );
 	}
 
 	var line = new MeshLine();
 	line.setGeometry( geometry, function(d) { return .05 + .03*Math.sin(50 * d); } );
 
-	var material = new MeshLineMaterial();
+	var material = new MeshLineMaterial({sizeAttenuation: 0});
 	var mesh = new THREE.Mesh( line.geometry, material );
 
-	mesh.position.x += cfg.x;
-	mesh.position.y += cfg.y;
+	mesh.position.x += pos.x;
+	mesh.position.y += pos.y;
+	mesh.position.z += pos.z;
+
+	mesh.rotation.x += rot.x;
+	mesh.rotation.y += rot.y;
+	mesh.rotation.z += rot.z;
+
+	mesh.name = 'field-line';
+	meshCurves.push(mesh);
 
 	return mesh;
 }
@@ -180,20 +194,22 @@ var dae,
     loader = new THREE.ColladaLoader();
 
 function loadLeftCoil( collada ) {
-	dae = collada.scene;
-	dae.position.set(0.3, 0, 0);
-
-	dae.scale.x = .1;
-	dae.scale.y = .1;
-	dae.scale.z = .1;
-
-	scene.add(dae);
-	render();
+	var cfg = {
+		pos: {x: 0, y:0.2, z:0},
+		rot: {x: 0, y:3.14/2, z:0},
+		scl: {x: .1, y:.1, z:.1}
+	};
+	return loadCoil(collada, cfg);
 }
 
 function loadRightCoil( collada ) {
 
-	return loadCoil(collada, {x: 0, y:0, z:0});
+	var cfg = {
+		pos: {x: 0, y:0, z:0},
+		rot: {x: 0, y:0, z:0},
+		scl: {x: .1, y:.1, z:.1}
+	};
+	return loadCoil(collada, cfg);
 }
 
 function loadPlasticBox( collada ) {
@@ -212,22 +228,68 @@ function loadPlasticBox( collada ) {
 	render();
 }
 
-function loadCoil (collada, pos) {
+// cfg {
+//	pos: {x:, y:, z:},
+//	rot: {x:, y:, z:},
+//  scl: {x:, y:, z:}
+//	}
+function loadCoil (collada, cfg) {
 	dae = collada.scene;
+	var pos = cfg.pos;
+	var rot = cfg.rot;
+	var scl = cfg.scl;
 
-	dae.rotation.y += 3.14/2;
+	dae.rotation.x += rot.x;
+	dae.rotation.y += rot.y;
+	dae.rotation.z += rot.z;
+
 	dae.position.set(pos.x, pos.y, pos.z);
 
-	dae.scale.x = .1;
-	dae.scale.y = .1;
-	dae.scale.z = .1;
+	//dae.rotation.y += 3.14/2;
+
+	dae.scale.x = scl.x;
+	dae.scale.y = scl.y;
+	dae.scale.z = scl.z;
+
+	meshCurve = createMeshCurve({
+		pos: {x:0, y:.25, z:0},
+	 	r: .2,
+		rot: {x:0, y:0, z:0}
+	});
+	scene.add(meshCurve);
+
+	var d = .25;
+	// var t = Math.PI/8;
+	// var ypos = d*Math.cos(t);
+	// var zpos = d*Math.sin(t);
+	// meshCurve = createMeshCurve({
+	// 	pos: {x:0, y:ypos, z:zpos},
+	// 	r: .2,
+	// 	rot: {x:t, y:0, z:0}
+	// });
+	// scene.add(meshCurve);
+
+	var numlines = 16;
+	for (var iline = 0; iline < numlines; ++iline) {
+
+		var t = iline * 2*Math.PI/numlines;
+		var ypos = d*Math.cos(t);
+		var zpos = d*Math.sin(t);
+		meshCurve = createMeshCurve({
+			pos: {x:0, y:ypos, z:zpos},
+			r: .2,
+			rot: {x:t, y:0, z:0}
+		});
+		scene.add(meshCurve);
+	}
 
 	scene.add(dae);
+	render();
 	return dae;
 }
 
 //loader.options.convertUpAxis = true;
-loader.load( 'collada/toroidal-Inductor.dae', loadLeftCoil);
+//loader.load( 'collada/toroidal-Inductor.dae', loadLeftCoil);
 loader.load( 'collada/toroidal-Inductor.dae', loadRightCoil);
 
 //loader.load( 'collada/skp-simple-plastic-box/model.dae', loadPlasticBox);
@@ -235,8 +297,7 @@ loader.load( 'collada/toroidal-Inductor.dae', loadRightCoil);
 //var curve = createCurve();
 //scene.add(curve);
 
-var meshCurve = createMeshCurve({x:.3, y:-.3, r:.2});
-scene.add(meshCurve);
+
 render();
 
 
