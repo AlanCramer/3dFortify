@@ -51,6 +51,11 @@
     "rollup": "^0.45.2",
     "rollup-plugin-istanbul": "^1.1.0",
     "source-map-support": "^0.4.15",
-    "spectron": "^3.7.2"
+    "spectron": "^3.7.2",
+    "three": "^0.88.0",
+    "three-collada-loader": "0.0.1",
+    "three-trackballcontrols": "0.0.6",
+    "three.meshline": "^1.0.3",
+    "three.trackball": "0.0.1"
   }
 }
