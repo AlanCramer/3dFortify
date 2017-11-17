@@ -1,14 +1,28 @@
 <!doctype html>
 <html>
-<head>
-  <meta charset="utf-8">
-  <title>Electron Boilerplate</title>
-  <link href="stylesheets/main.css" rel="stylesheet" type="text/css">
-</head>
+<meta charset=utf-8>
+<title>3D Fortify</title>
+<style>
+    body { margin: 0; }
+    canvas { width: 100%; height: 100% }
+
+    #info {
+        position: absolute;
+        top: 20px;
+        font-size: 18px;
+        color: #ffffff;
+        width: 100%;
+        text-align: center;
+        z-index: 100;
+        display:block;
+    }
+</style>
 <body>
 
-  <div class="container">
-    <h1 id="greet"></h1>
+
+
+  <div class="container" style='display:none'>
+    <p id="greet">
     <p>
       Welcome to <a href="http://electron.atom.io" class="js-external-link">Electron</a> app running on <strong id="os"></strong> machine.
     </p>
@@ -23,10 +37,20 @@
     </p>
   </div>
 
+  <div id="info">
+  	<button onclick=handlers.toggleShowFields()> Show Fields </button>
+  	<button onclick=handlers.toggleLeftCoil()> Show Left Coil </button>
+  	<button onclick=handlers.toggleRightCoil()> Show Right Coil </button>
+  	<button onclick=handlers.togglePlasticBox()> Show Box </button>
+    <button id="stl-open" > Open STL </button>
+  </div>
+
   <script src="app.js"></script>
   <script>
     // You can also require other files to run in this process
-    require('./renderer.js')
+    var handlers = require('./renderer.js')
+
   </script>
+
 </body>
 </html>

@@ -4,9 +4,50 @@
 var THREE = require('three');
 var STLLoader = require('three-stl-loader')(THREE)
 var OrbitControls = require('three-orbit-controls')(THREE)
-var ColladaLoader = require('three-collada-loader');
+
 var MeshLine = require( 'three.meshline' );
 var TrackballControls = require('three-trackballcontrols')
+
+//var ColladaLoader = require('three-collada-loader');
+window.THREE = THREE;
+var ColladaLoader = require('../node_modules/three/examples/js/loaders/ColladaLoader.js');
+//var <script src="../node_modules/three/examples/js/loaders/ColladaLoader.js"></script>
+
+
+var app = require('electron').remote;
+var dialog = app.dialog;
+
+document.getElementById('stl-open').addEventListener('click', _ => {
+    dialog.showOpenDialog((fileNames) => {
+        // fileNames is an array that contains all the selected
+        if(fileNames === undefined){
+            alert("No file selected");
+            return;
+        }
+
+        var loader = new STLLoader();
+
+        loader.load(fileNames[0], function (geometry) {
+            var material = new THREE.MeshPhongMaterial( { color: 0xff5533, specular: 0x111111, shininess: 200 } );
+            var mesh = new THREE.Mesh( geometry, material );
+
+            mesh.position.set( 0, 0, 0 );
+            mesh.rotation.set( 0, - Math.PI / 2, 0 );
+            mesh.scale.set( 0.005, 0.005, 0.005 );
+
+            mesh.castShadow = true;
+            mesh.receiveShadow = true;
+
+            scene.add( mesh );
+            render();
+        })
+
+    });
+})
+//
+// document.getElementById('business').onchange = function () {
+//   alert('Selected file: ' + this.value);
+// };
 
 var scene, camera, renderer;
 var geometry, material, mesh, boxMesh;
@@ -24,6 +65,8 @@ var showLeftCoil = true;
 var showRightCoil = true;
 var showPlasticBox = true;
 
+//var spinScene = false;
+
 var renderer = null;
 
 initNew();
@@ -37,7 +80,8 @@ function render() {
 	renderer.render( scene, camera );
 }
 
-function toggleShowFields() {
+exports.THREE = THREE;
+exports.toggleShowFields =  function toggleShowFields() {
 	showFields = !showFields;
 	meshCurves.map(function(c) {
 		c.visible = showFields;
@@ -45,23 +89,28 @@ function toggleShowFields() {
 	render();
 }
 
-function toggleLeftCoil() {
+exports.toggleLeftCoil = function toggleLeftCoil() {
 	showLeftCoil = !showLeftCoil;
 	leftCoil.visible = showLeftCoil;
 	render();
 }
 
-function toggleRightCoil() {
+exports.toggleRightCoil = function toggleRightCoil() {
 	showRightCoil = !showRightCoil;
 	rightCoil.visible = showRightCoil;
 	render();
 }
 
-function togglePlasticBox() {
+exports.togglePlasticBox = function togglePlasticBox() {
 	showPlasticBox = !showPlasticBox;
 	plasticBox.visible = showPlasticBox;
 	render();
 }
+
+// exports.toggleSpinScene = function toggleSpinScene() {
+// 	spinScene = !spinScene;
+//     render();
+// }
 
 // Avoid constantly rendering the scene by only
 // updating the controls every requestAnimationFrame
@@ -76,11 +125,25 @@ function animationLoop() {
 		render();
 	}
 
+    // if (spinScene) {
+    //     var timer = Date.now() * 0.0005;
+    //
+    //     var pos = camera.position;
+    //     var dist = Math.sqrt(pos.x*pos.x + pos.y*pos.y + pos.z*pos.z);
+    //
+    //     camera.position.x = Math.cos( timer ) * dist;
+    //     camera.position.y = Math.sin( timer ) * dist;
+    //
+    //     camera.lookAt( scene.position );
+    //
+    //     render();
+    // }
+
 	controls.update();
 }
 
 var dae,
-    loader = new ColladaLoader();
+    loader = new THREE.ColladaLoader();
 
 function loadLeftCoil( collada ) {
     var cfg = {
@@ -112,6 +175,11 @@ function loadPlasticBox( collada ) {
 
     dae.rotation.x += 3.14/2;
     dae.position.set(-4.2, -3.1, -.2);
+
+    // override some materials to make it transparent
+    dae.children[0].children[1].material[1].transparent = true;
+    dae.children[0].children[1].material[1].opacity = .3;
+    dae.children[0].children[1].material[0].opacity = .3
 
     plasticBox = dae;
     scene.add(dae);
