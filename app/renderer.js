@@ -8,14 +8,20 @@ var OrbitControls = require('three-orbit-controls')(THREE)
 var MeshLine = require( 'three.meshline' );
 var TrackballControls = require('three-trackballcontrols')
 
+//var CSG = require('threeCSG.es6')
+
 //var ColladaLoader = require('three-collada-loader');
 window.THREE = THREE;
-var ColladaLoader = require('../node_modules/three/examples/js/loaders/ColladaLoader.js');
+var ColladaLoader = require('three/examples/js/loaders/ColladaLoader.js');
 //var <script src="../node_modules/three/examples/js/loaders/ColladaLoader.js"></script>
-
 
 var app = require('electron').remote;
 var dialog = app.dialog;
+
+var stlMesh = null;
+
+
+
 
 document.getElementById('stl-open').addEventListener('click', _ => {
     dialog.showOpenDialog((fileNames) => {
@@ -29,16 +35,23 @@ document.getElementById('stl-open').addEventListener('click', _ => {
 
         loader.load(fileNames[0], function (geometry) {
             var material = new THREE.MeshPhongMaterial( { color: 0xff5533, specular: 0x111111, shininess: 200 } );
-            var mesh = new THREE.Mesh( geometry, material );
+            stlMesh = new THREE.Mesh( geometry, material );
 
-            mesh.position.set( 0, 0, 0 );
-            mesh.rotation.set( 0, - Math.PI / 2, 0 );
-            mesh.scale.set( 0.005, 0.005, 0.005 );
+            var bbox = new THREE.Box3();
+            bbox.setFromObject(stlMesh);
+            var dist = bbox.max.sub(bbox.min);
+            var maxDim = Math.max(dist.x, dist.y, dist.z);
+            var desiredSize = .1;
+            var scale = desiredSize / maxDim;
 
-            mesh.castShadow = true;
-            mesh.receiveShadow = true;
+            stlMesh.position.set( 0, 0, 0 );
+            //stlMesh.rotation.set( 0, - Math.PI / 2, 0 );
+            stlMesh.scale.set( scale, scale, scale );
 
-            scene.add( mesh );
+            stlMesh.castShadow = true;
+            stlMesh.receiveShadow = true;
+
+            scene.add( stlMesh );
             render();
         })
 
@@ -106,6 +119,7 @@ exports.togglePlasticBox = function togglePlasticBox() {
 	plasticBox.visible = showPlasticBox;
 	render();
 }
+
 
 // exports.toggleSpinScene = function toggleSpinScene() {
 // 	spinScene = !spinScene;
@@ -377,12 +391,11 @@ function initNew() {
     // you won’t be draining system resources every frame to render a scene.
     controls.addEventListener( 'change', render );
 
-
-    }
+    var cube_geometry = new THREE.CubeGeometry( .3, .3, .3 );
+	sliceCube = new THREE.Mesh( cube_geometry );
+}
 
 animationLoop();
-
-
 
 
 /////////////////////////////////////////
@@ -397,75 +410,6 @@ loader.load( '../collada/toroidal-Inductor.dae', loadRightCoil);
 
 loader.load( '../collada/skp-simple-plastic-box/model.dae', loadPlasticBox);
 
-//var curve = createCurve();
-//scene.add(curve);
 
 
 render();
-
-
-
-function initOld() {
-
-    scene = new THREE.Scene();
-
-    camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 10000 );
-    camera.position.z = 100;
-
-    controls = new OrbitControls(camera);
-    controls.addEventListener( 'change', render );
-
-    var loader = new STLLoader();
-
-    loader.load('../stl/Body1.stl', function (geometry) {
-
-        var textureLoader = new THREE.TextureLoader();
-        textureLoader.load('../textures/pressureTreatedWood.jpg', function(texture) {
-
-            var material = new THREE.MeshStandardMaterial({map: texture});
-            mesh = new THREE.Mesh(geometry, material);
-            scene.add(mesh);
-
-            var boxGeometry = new THREE.BoxGeometry(20, 20, 20);
-
-            boxMesh = new THREE.Mesh(boxGeometry, material);
-            scene.add(boxMesh);
-
-            render();
-        });
-    })
-
-    var lights = [];
-    lights[0] = new THREE.PointLight(0xffffff, 1, 0);
-    lights[1] = new THREE.PointLight(0xffffff, 1, 0);
-    lights[2] = new THREE.PointLight(0xffffff, 1, 0);
-
-    lights[0].position.set(0, 200, 0);
-    lights[1].position.set(100, 200, 100);
-    lights[2].position.set(-100, -200, -100);
-
-    scene.add(lights[0]);
-    scene.add(lights[1]);
-    scene.add(lights[2]);
-
-    renderer = new THREE.WebGLRenderer();
-    var windowScale = .7;
-    renderer.setSize( window.innerWidth * windowScale, window.innerHeight * windowScale);
-    renderer.setClearColor(0xffffff, 1);
-
-    document.body.appendChild( renderer.domElement );
-}
-
-// function render(gl, width, height) {
-//     renderer.render( scene, camera );
-// }
-//
-// function animate() {
-//
-//     requestAnimationFrame( animate );
-//
-//     mesh.rotation.x += 0.01;
-//     mesh.rotation.y += 0.02;
-//
-//     renderer.render( scene, camera );
-// }
