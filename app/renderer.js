@@ -186,16 +186,20 @@ exports.sliceMesh = function sliceMesh () {
         if ( !((v1z >= 0 && v2z >= 0 && v3z >= 0) ||
                (v1z <= 0 && v2z <= 0 && v3z <= 0)) ) {
 
-            geom.setDrawRange(isectTriCt, 3);
+            geom.setDrawRange(itri, 3);
             render();
-            swapTriangles(pos, isectTriCt*3, itri);
+            console.log('swapping tri ' + isectTriCt + ' at idx ' + isectTriCt * 3 + 'with tri ' + itri + ' at idx ' + itri*3);
+            swapTriangles(pos, isectTriCt*3*3, itri*3);
             isectTriCt ++;
             geom.setDrawRange(0, isectTriCt*3);
+            geom.attributes.position.needsUpdate = true;
             render();
         }
     }
 
+    geom.attributes.position.needsUpdate = true;
     geom.setDrawRange(0, isectTriCt*3);
+    render();
 
 }
 
