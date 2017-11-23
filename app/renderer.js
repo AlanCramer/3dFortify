@@ -8,6 +8,7 @@ var OrbitControls = require('three-orbit-controls')(THREE)
 var MeshLine = require( 'three.meshline' );
 var TrackballControls = require('three-trackballcontrols')
 
+
 //var CSG = require('threeCSG.es6')
 
 //var ColladaLoader = require('three-collada-loader');
@@ -18,7 +19,46 @@ var ColladaLoader = require('three/examples/js/loaders/ColladaLoader.js');
 var app = require('electron').remote;
 var dialog = app.dialog;
 
+
+
+
+//
+// document.getElementById('business').onchange = function () {
+//   alert('Selected file: ' + this.value);
+// };
+
+var scene, camera, renderer;
+var geometry, material, mesh, boxMesh;
+
 var stlMesh = null;
+var stlGeom = null;
+var polyhedronMesh = null;
+var polyGeom = null;
+
+var slicerPlane = null;
+var controls;
+
+var meshCurves = [];
+var showFields = false;
+
+var leftCoil = null;
+var rightCoil = null;
+var plasticBox = null;
+
+var showLeftCoil = false;
+var showRightCoil = false;
+var showPlasticBox = false;
+var showStl = true;
+var showPoly = true;
+
+
+var stlWireframe = false;
+
+//var spinScene = false;
+
+var renderer = null;
+
+init();
 
 
 
@@ -34,6 +74,11 @@ document.getElementById('stl-open').addEventListener('click', _ => {
         var loader = new STLLoader();
 
         loader.load(fileNames[0], function (geometry) {
+
+            scene.remove(stlMesh);
+
+            stlGeom = geometry;
+
             var material = new THREE.MeshPhongMaterial( { color: 0xff5533, specular: 0x111111, shininess: 200 } );
             stlMesh = new THREE.Mesh( geometry, material );
 
@@ -57,33 +102,6 @@ document.getElementById('stl-open').addEventListener('click', _ => {
 
     });
 })
-//
-// document.getElementById('business').onchange = function () {
-//   alert('Selected file: ' + this.value);
-// };
-
-var scene, camera, renderer;
-var geometry, material, mesh, boxMesh;
-
-var controls;
-
-var meshCurves = [];
-var showFields = false;
-
-var leftCoil = null;
-var rightCoil = null;
-var plasticBox = null;
-
-var showLeftCoil = true;
-var showRightCoil = true;
-var showPlasticBox = true;
-
-//var spinScene = false;
-
-var renderer = null;
-
-initNew();
-
 
 /////////////////////////////////////////
 // Render Loop
@@ -120,11 +138,77 @@ exports.togglePlasticBox = function togglePlasticBox() {
 	render();
 }
 
+exports.toggleStl = function toggleStl() {
+	showStl = !showStl;
+	stlMesh.visible = showStl;
+	render();
+}
 
-// exports.toggleSpinScene = function toggleSpinScene() {
-// 	spinScene = !spinScene;
-//     render();
-// }
+exports.toggleStlWireframe = function toggleStlWireframe() {
+	stlWireframe = !stlWireframe;
+	stlMesh.material.wireframe = stlWireframe;
+	render();
+}
+
+exports.toggleShowPoly = function toggleShowPoly() {
+	showPoly = !showPoly;
+	polyhedronMesh.visible = showPoly;
+	render();
+}
+
+exports.sliceMesh = function sliceMesh () {
+
+    var mesh = stlMesh ? stlMesh : polyhedronMesh;
+    var geom = stlGeom ? stlGeom : polyGeom;
+    var pos = geom.getAttribute('position');
+    var vertCt = pos.count;
+    var triCt = vertCt / 3;
+
+    if (!slicerPlane) {
+        var geometry = new THREE.PlaneGeometry( .2, .2, 2 );
+        var material = new THREE.MeshBasicMaterial( {color: 0xffff00, side: THREE.DoubleSide} );
+        slicerPlane = new THREE.Mesh( geometry, material );
+
+        // how to control position
+        slicerPlane.rotation.z += Math.PI/4;
+        scene.add( slicerPlane );
+        render();
+    }
+
+    // go thru triangles
+    // if a vertex has z above plane and another below, reorder to front
+    var isectTriCt = 0;
+    for (var itri = 0; itri < pos.count; itri += 3) {
+        var v1z = pos.getZ(itri),
+            v2z = pos.getZ(itri + 1),
+            v3z = pos.getZ(itri + 2);
+
+        if ( !((v1z >= 0 && v2z >= 0 && v3z >= 0) ||
+               (v1z <= 0 && v2z <= 0 && v3z <= 0)) ) {
+
+            geom.setDrawRange(isectTriCt, 3);
+            render();
+            swapTriangles(pos, isectTriCt*3, itri);
+            isectTriCt ++;
+            geom.setDrawRange(0, isectTriCt*3);
+            render();
+        }
+    }
+
+    geom.setDrawRange(0, isectTriCt*3);
+
+}
+
+function swapTriangles(pts, idx0, idx1) {
+
+    var pos = pts.array;
+    var tmp0 = pos.slice(idx0, idx0+9);
+    var tmp1 = pos.slice(idx1, idx1+9);
+    pos.set(tmp1, idx0);
+    // pos.copyWithin(idx0, idx1, 3); // not working?
+    pos.set(tmp0, idx1);
+}
+
 
 // Avoid constantly rendering the scene by only
 // updating the controls every requestAnimationFrame
@@ -139,22 +223,41 @@ function animationLoop() {
 		render();
 	}
 
-    // if (spinScene) {
-    //     var timer = Date.now() * 0.0005;
-    //
-    //     var pos = camera.position;
-    //     var dist = Math.sqrt(pos.x*pos.x + pos.y*pos.y + pos.z*pos.z);
-    //
-    //     camera.position.x = Math.cos( timer ) * dist;
-    //     camera.position.y = Math.sin( timer ) * dist;
-    //
-    //     camera.lookAt( scene.position );
-    //
-    //     render();
-    // }
-
 	controls.update();
 }
+
+
+function initPoly() {
+
+    var mesh = new THREE.Object3D();
+    var geom = new THREE.DodecahedronBufferGeometry(.1, 0);
+    polyGeom = geom;
+
+	mesh.add( new THREE.LineSegments(
+
+		geom,
+		new THREE.LineBasicMaterial( {
+			color: 0xffffff,
+			transparent: true,
+			opacity: 0.5
+		} )
+	) );
+
+	mesh.add( new THREE.Mesh(
+
+		geom,
+		new THREE.MeshPhongMaterial( {
+			color: 0x156289,
+			emissive: 0x072534,
+			side: THREE.DoubleSide,
+			flatShading: true
+		} )
+	) );
+
+    scene.add( mesh );
+    return mesh;
+}
+
 
 var dae,
     loader = new THREE.ColladaLoader();
@@ -165,7 +268,7 @@ function loadLeftCoil( collada ) {
         rot: {x: 0, y:0, z:Math.PI/2},
         scl: {x: 1, y:1, z:1}
     };
-    return loadCoil(collada, cfg, true);
+    return loadCoil(collada, cfg, true, showLeftCoil);
 }
 
 function loadRightCoil( collada ) {
@@ -175,7 +278,7 @@ function loadRightCoil( collada ) {
         rot: {x: 0, y:0, z:0},
         scl: {x: 1, y:1, z:1}
     };
-    return loadCoil(collada, cfg, false);
+    return loadCoil(collada, cfg, false, showRightCoil);
 }
 
 function loadPlasticBox( collada ) {
@@ -196,6 +299,7 @@ function loadPlasticBox( collada ) {
     dae.children[0].children[1].material[0].opacity = .3
 
     plasticBox = dae;
+    plasticBox.visible = showPlasticBox;
     scene.add(dae);
     render();
 }
@@ -205,7 +309,7 @@ function loadPlasticBox( collada ) {
 //	rot: {x:, y:, z:},
 //  scl: {x:, y:, z:}
 //	}
-function loadCoil (collada, cfg, isLeftCoil) {
+function loadCoil (collada, cfg, isLeftCoil, visible) {
 
     dae = collada.scene;
     dae.scale.x = .1;
@@ -268,6 +372,8 @@ function loadCoil (collada, cfg, isLeftCoil) {
     else {
         rightCoil = group;
     }
+
+    group.visible = visible;
     scene.add( group );
 
     render();
@@ -326,11 +432,13 @@ function createMeshCurve(cfg) {
 }
 
 
-function initNew() {
+
+
+function init() {
 
     scene = new THREE.Scene();
 
-    camera = new THREE.PerspectiveCamera( 5, window.innerWidth / window.innerHeight, 1, 1000 );
+    camera = new THREE.PerspectiveCamera( 3, window.innerWidth / window.innerHeight, .1, 200 );
     camera.position.set(-6, -6, 4);
     camera.up.y = 0;
     camera.up.z = 1;
@@ -359,16 +467,18 @@ function initNew() {
     controls.noPan = true;
     controls.staticMoving = false;
     controls.dynamicDampingFactor = 0.2;
+    controls.minDistance = 0.2;
+    controls.maxDistance = 100;
 
 
     /////////////////////////////////////////
     // Lighting
     /////////////////////////////////////////
 
-    var iphone_color  = '#FAFAFA',
+    var lightGrey  = '#FAFAFA',
         ambientLight  = new THREE.AmbientLight( '#EEEEEE' ),
-        hemiLight     = new THREE.HemisphereLight( iphone_color, iphone_color, 0 ),
-        light         = new THREE.PointLight( iphone_color, 1, 100 );
+        hemiLight     = new THREE.HemisphereLight( lightGrey, lightGrey, 0 ),
+        light         = new THREE.PointLight( lightGrey, 1, 100 );
 
     hemiLight.position.set( 0, 50, 0 );
     light.position.set( 0, 20, 10 );
@@ -378,12 +488,11 @@ function initNew() {
     scene.add( light );
 
 
-    /////////////////////////////////////////
-    // Utilities
-    /////////////////////////////////////////
 
     var axisHelper = new THREE.AxesHelper( 1 );
     scene.add( axisHelper );
+
+    polyhedronMesh = initPoly();
 
 
     // Render the scene when the controls have changed.
@@ -391,8 +500,6 @@ function initNew() {
     // you won’t be draining system resources every frame to render a scene.
     controls.addEventListener( 'change', render );
 
-    var cube_geometry = new THREE.CubeGeometry( .3, .3, .3 );
-	sliceCube = new THREE.Mesh( cube_geometry );
 }
 
 animationLoop();
