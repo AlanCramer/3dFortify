@@ -79,7 +79,7 @@ document.getElementById('stl-open').addEventListener('click', _ => {
 
             stlGeom = geometry;
 
-            var material = new THREE.MeshPhongMaterial( { color: 0xff5533, specular: 0x111111, shininess: 200 } );
+            var material = new THREE.MeshPhongMaterial( { color: 0xff5533, specular: 0x111111, shininess: 200, side: THREE.DoubleSide } );
             stlMesh = new THREE.Mesh( geometry, material );
 
             var bbox = new THREE.Box3();
@@ -163,14 +163,16 @@ exports.sliceMesh = function sliceMesh () {
     var pos = geom.getAttribute('position');
     var vertCt = pos.count;
     var triCt = vertCt / 3;
+    var zpos = -.01;
 
     if (!slicerPlane) {
         var geometry = new THREE.PlaneGeometry( .2, .2, 2 );
-        var material = new THREE.MeshBasicMaterial( {color: 0xffff00, side: THREE.DoubleSide} );
+        var material = new THREE.MeshBasicMaterial( {color: 0xffff00, side: THREE.DoubleSide, transparent: true, opacity:.2} );
         slicerPlane = new THREE.Mesh( geometry, material );
 
         // how to control position
         slicerPlane.rotation.z += Math.PI/4;
+        slicerPlane.position.z += zpos;
         scene.add( slicerPlane );
         render();
     }
@@ -183,17 +185,12 @@ exports.sliceMesh = function sliceMesh () {
             v2z = pos.getZ(itri + 1),
             v3z = pos.getZ(itri + 2);
 
-        if ( !((v1z >= 0 && v2z >= 0 && v3z >= 0) ||
-               (v1z <= 0 && v2z <= 0 && v3z <= 0)) ) {
+        if ( !((v1z > zpos && v2z > zpos && v3z > zpos) ||
+               (v1z < zpos && v2z < zpos && v3z < zpos)) ) {
 
-            geom.setDrawRange(itri, 3);
-            render();
             console.log('swapping tri ' + isectTriCt + ' at idx ' + isectTriCt * 3 + 'with tri ' + itri + ' at idx ' + itri*3);
             swapTriangles(pos, isectTriCt*3*3, itri*3);
             isectTriCt ++;
-            geom.setDrawRange(0, isectTriCt*3);
-            geom.attributes.position.needsUpdate = true;
-            render();
         }
     }
 
