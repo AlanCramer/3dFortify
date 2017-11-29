@@ -18,3 +18,7 @@ a {
 .container {
   text-align: center;
 }
+#slice-slider {
+  position: absolute;
+  -webkit-appearance: slider-vertical;
+}

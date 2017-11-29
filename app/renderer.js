@@ -61,7 +61,15 @@ var renderer = null;
 init();
 
 
+var slider = document.getElementById("slice-slider");
+slider.addEventListener("input", function(e) {
 
+    let val = .2*slider.value;
+    slicerPlane.position.z = val ;
+
+    exports.sliceMesh(val);
+    render();
+});
 
 document.getElementById('stl-open').addEventListener('click', _ => {
     dialog.showOpenDialog((fileNames) => {
@@ -91,7 +99,8 @@ document.getElementById('stl-open').addEventListener('click', _ => {
 
             stlMesh.position.set( 0, 0, 0 );
             //stlMesh.rotation.set( 0, - Math.PI / 2, 0 );
-            stlMesh.scale.set( scale, scale, scale );
+            //stlMesh.scale.set( scale, scale, scale );
+            stlGeom.attributes.position.array.forEach(function(g,i) { stlGeom.attributes.position.array[i] = g*scale;})
 
             stlMesh.castShadow = true;
             stlMesh.receiveShadow = true;
@@ -156,14 +165,16 @@ exports.toggleShowPoly = function toggleShowPoly() {
 	render();
 }
 
-exports.sliceMesh = function sliceMesh () {
+exports.sliceMesh = function sliceMesh (zpos) {
+
+  // first, turn on the slider
+  slider.style.visibility = 'visible';
 
     var mesh = stlMesh ? stlMesh : polyhedronMesh;
     var geom = stlGeom ? stlGeom : polyGeom;
     var pos = geom.getAttribute('position');
     var vertCt = pos.count;
     var triCt = vertCt / 3;
-    var zpos = -.01;
 
     if (!slicerPlane) {
         var geometry = new THREE.PlaneGeometry( .2, .2, 2 );
@@ -460,7 +471,7 @@ function init() {
     // Trackball Controller
     /////////////////////////////////////////
 
-    controls = new TrackballControls( camera );
+    controls = new TrackballControls( camera, renderer.domElement );
     controls.rotateSpeed = 5.0;
     controls.zoomSpeed = 3.2;
     controls.panSpeed = 0.8;
